@@ -3,8 +3,7 @@ class VideoStream:
 
 	def __init__(self, filename: str):
 		self.filename = filename
-		with open(filename, "rb") as file:
-			self.file = file
+		self.file = open(filename, "rb")
 		self.frameNum = 0
 
 	def nextFrame(self):

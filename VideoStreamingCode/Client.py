@@ -64,7 +64,7 @@ class Client:
 		
 		# Create a label to display the movie
 		self.label = Label(self.master, height=19)
-		self.label.grid(row=0, column=0, columnspan=4, sticky="nsew", padx=5, pady=5)
+		self.label.grid(row=0, column=0, columnspan=4, sticky="wens", padx=5, pady=5)
 
 	def setupMovie(self):
 		"""Setup button handler."""
@@ -132,7 +132,7 @@ class Client:
 	def updateMovie(self, imageFile):
 		"""Update the image file as video frame in the GUI."""
 		photo = ImageTk.PhotoImage(Image.open(imageFile))
-		self.label.configure(image = image, height = 288)
+		self.label.configure(image = photo, height = 288)
 		self.label.image = photo
 
 	def connectToServer(self):
@@ -236,8 +236,7 @@ class Client:
 						# Open RTP port.
 						self.openRtpPort() 
 					elif self.requestSent == self.PLAY:
-						# self.state = ...
-						pass
+						self.state = self.PLAYING
 					elif self.requestSent == self.PAUSE:
 						# self.state = ...
 						
