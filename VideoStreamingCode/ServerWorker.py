@@ -131,7 +131,7 @@ class ServerWorker:
 				except:
 					print("Connection Error")
 
-	def makeRtp(self, payload, frameNbr):
+	def makeRtp(self, payload: bytes, frameNbr: int):
 		"""RTP-packetize the video data."""
 		version = 2
 		padding = 0

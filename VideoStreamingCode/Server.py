@@ -1,6 +1,5 @@
-import sys, socket
-
 from ServerWorker import ServerWorker
+import sys, socket
 
 class Server:
 	def __init__(self):
@@ -17,7 +16,7 @@ class Server:
 		rtspSocket.listen(5)
 
 		addr, port = rtspSocket.getsockname()
-		print(f"### SERVIDOR INICIALIZADO EM {f"{addr}:{port}"} ###\n")
+		print(f"### SERVIDOR INICIALIZADO EM {addr}:{port} ###\n")
 		# Receive client info (address,port) through RTSP/TCP session
 		try:
 			while True:

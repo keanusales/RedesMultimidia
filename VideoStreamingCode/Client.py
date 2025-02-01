@@ -1,4 +1,4 @@
-from tkinter import Button, Label, messagebox
+from tkinter import Button, Label, messagebox, Tk
 from threading import Thread, Event
 from PIL import Image, ImageTk
 from os import remove
@@ -21,7 +21,7 @@ class Client:
 	TEARDOWN = 3
 
 	# Initiation..
-	def __init__(self, master, serveraddr: str, serverport: int, rtpport: int, filename: str):
+	def __init__(self, master: Tk, serveraddr: str, serverport: int, rtpport: int, filename: str):
 		self.master = master
 		self.master.protocol("WM_DELETE_WINDOW", self.handler)
 		self.createWidgets()
@@ -238,12 +238,12 @@ class Client:
 					elif self.requestSent == self.PLAY:
 						self.state = self.PLAYING
 					elif self.requestSent == self.PAUSE:
-						# self.state = ...
+						self.state = self.READY
 						
 						# The play thread exits. A new thread is created on resume.
 						self.playEvent.set()
 					elif self.requestSent == self.TEARDOWN:
-						# self.state = ...
+						self.state = self.INIT
 						
 						# Flag the teardownAcked to close the socket.
 						self.teardownAcked = 1 

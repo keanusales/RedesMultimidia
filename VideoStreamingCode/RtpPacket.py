@@ -1,13 +1,14 @@
 from time import time
-HEADER_SIZE = 12
 
 class RtpPacket:	
+	HEADER_SIZE = 12
 	header = bytearray(HEADER_SIZE)
 	
 	def __init__(self):
-		self.payload = bytearray()
+		self.payload = bytes()
 		
-	def encode(self, version, padding, extension, cc, seqnum, marker, pt, ssrc, payload):
+	def encode(self, version: int, padding: int, extension: int, cc: int,
+						seqnum: int, marker: int, pt: int, ssrc: int, payload: bytes):
 		"""Encode the RTP packet with header fields and payload."""
 		timestamp = int(time())
 		self.header[0] = (version << 6) | (padding << 5) | (extension << 4) | cc
@@ -25,10 +26,10 @@ class RtpPacket:
 
 		self.payload = payload
 		
-	def decode(self, byteStream):
+	def decode(self, byteStream: bytes):
 		"""Decode the RTP packet."""
-		self.header = bytearray(byteStream[:HEADER_SIZE])
-		self.payload = byteStream[HEADER_SIZE:]
+		self.header = bytearray(byteStream[:self.HEADER_SIZE])
+		self.payload = byteStream[self.HEADER_SIZE:]
 	
 	def version(self):
 		"""Return RTP version."""
