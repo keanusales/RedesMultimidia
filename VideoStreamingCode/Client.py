@@ -207,7 +207,7 @@ class Client:
 			reply = self.rtspSocket.recv(1024)
 			
 			if reply: 
-				self.parseRtspReply(reply)
+				self.parseRtspReply(bytes.decode(reply))
 			
 			# Close the RTSP socket upon requesting Teardown
 			if self.requestSent == self.TEARDOWN:
@@ -215,7 +215,7 @@ class Client:
 				self.rtspSocket.close()
 				break
 	
-	def parseRtspReply(self, data):
+	def parseRtspReply(self, data: str):
 		"""Parse the RTSP reply from the server."""
 		lines = data.split("\n")
 		seqNum = int(lines[1].split(" ")[1])
@@ -231,11 +231,7 @@ class Client:
 			if self.sessionId == session:
 				if int(lines[0].split(" ")[1]) == 200: 
 					if self.requestSent == self.SETUP:
-						#-------------
-						# TO COMPLETE
-						#-------------
-						# Update RTSP state.
-						# self.state = ...
+						self.state = self.READY
 						
 						# Open RTP port.
 						self.openRtpPort() 
@@ -259,15 +255,14 @@ class Client:
 		# TO COMPLETE
 		#-------------
 		# Create a new datagram socket to receive RTP packets from the server
-		# self.rtpSocket = ...
+		self.rtpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		
 		# Set the timeout value of the socket to 0.5sec
-		# ...
+		self.rtpSocket.settimeout(0.5)
 		
 		try:
 			# Bind the socket to the address using the RTP port given by the client user
-			# ...
-			pass
+			self.rtpSocket.bind(("localhost", self.rtpPort))
 		except:
 			messagebox.showwarning("Unable to Bind", "Unable to bind PORT=%d" %self.rtpPort)
 

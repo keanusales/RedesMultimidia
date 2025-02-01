@@ -20,6 +20,8 @@ class ServerWorker:
 	FILE_NOT_FOUND_404 = 1
 	CON_ERR_500 = 2
 
+	RESOURCES_PATH = "./resources/"
+
 	clientInfo = {}
 
 	def __init__(self, clientInfo: dict):
@@ -34,9 +36,10 @@ class ServerWorker:
 		while True:            
 			data = connSocket.recv(256)
 			if data:
-				print("Data received:\n" + data)
-				self.processRtspRequest(data)
-	
+				strData = bytes.decode(data)
+				print("Data received:\n" + strData)
+				self.processRtspRequest(strData)
+
 	def processRtspRequest(self, data: str):
 		"""Process RTSP request sent from the client."""
 		# Get the request type
@@ -57,9 +60,10 @@ class ServerWorker:
 				print("processing SETUP\n")
 				
 				try:
-					self.clientInfo["videoStream"] = VideoStream(filename)
+					self.clientInfo["videoStream"] = VideoStream(self.RESOURCES_PATH + filename)
 					self.state = self.READY
-				except IOError:
+				except IOError as e:
+					print("File not found: %s" % e)
 					self.replyRtsp(self.FILE_NOT_FOUND_404, seq[1])
 				
 				# Generate a randomized RTSP session ID
@@ -150,7 +154,7 @@ class ServerWorker:
 			#print "200 OK"
 			reply = f"RTSP/1.0 200 OK\nCSeq: {seq}\nSession: {self.clientInfo["session"]}"
 			connSocket = self.clientInfo["rtspSocket"][0]
-			connSocket.send(reply)
+			connSocket.send(reply.encode("utf-8"))
 
 		# Error messages
 		elif code == self.FILE_NOT_FOUND_404:
