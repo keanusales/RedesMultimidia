@@ -21,13 +21,13 @@ class Client:
 	TEARDOWN = 3
 
 	# Initiation..
-	def __init__(self, master, serveraddr, serverport: int, rtpport: int, filename: str):
+	def __init__(self, master, serveraddr: str, serverport: int, rtpport: int, filename: str):
 		self.master = master
 		self.master.protocol("WM_DELETE_WINDOW", self.handler)
 		self.createWidgets()
 		self.serverAddr = serveraddr
-		self.serverPort = serverport
-		self.rtpPort = rtpport
+		self.serverPort = int(serverport)
+		self.rtpPort = int(rtpport)
 		self.fileName = filename
 		self.rtspSeq = 0
 		self.sessionId = 0
@@ -106,9 +106,12 @@ class Client:
 					if currFrameNbr > self.frameNbr: # Discard the late packet
 						self.frameNbr = currFrameNbr
 						self.updateMovie(self.writeFrame(rtpPacket.getPayload()))
+			except socket.error as e:
+				print(f"Erro no socket: {e}")
+				break
 			except:
 				# Stop listening upon requesting PAUSE or TEARDOWN
-				if self.playEvent.isSet(): 
+				if self.playEvent.is_set():
 					break
 				
 				# Upon receiving ACK for TEARDOWN request,
@@ -138,7 +141,7 @@ class Client:
 		try:
 			self.rtspSocket.connect((self.serverAddr, self.serverPort))
 		except:
-			messagebox.showwarning("Connection Failed", f"Connection to \"{self.serverAddr}\" failed.")
+			messagebox.showwarning("Connection Failed", f"Connection to \"{self.serverAddr}:{self.serverPort}\" failed.")
 
 	def sendRtspRequest(self, requestCode):
 		"""Send RTSP request to the server."""	
