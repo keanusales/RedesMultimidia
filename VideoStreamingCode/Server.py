@@ -19,11 +19,14 @@ class Server:
 		addr, port = rtspSocket.getsockname()
 		print(f"### SERVIDOR INICIALIZADO EM {f"{addr}:{port}"} ###\n")
 		# Receive client info (address,port) through RTSP/TCP session
-		while True:
-			clientInfo = {}
-			client_socket, client_addr = rtspSocket.accept()
-			print(f"Cliente conectado: {client_socket}-{client_addr}")
-			clientInfo['rtspSocket'] = (client_socket, client_addr)
-			ServerWorker(clientInfo).run()		
+		try:
+			while True:
+				clientInfo = {}
+				client_socket, client_addr = rtspSocket.accept()
+				print(f"Cliente conectado: {client_socket}-{client_addr}")
+				clientInfo['rtspSocket'] = (client_socket, client_addr)
+				ServerWorker(clientInfo).run()
+		finally:
+			rtspSocket.close()
 
 if __name__ == "__main__": Server()

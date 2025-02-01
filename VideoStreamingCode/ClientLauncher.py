@@ -15,5 +15,8 @@ if __name__ == "__main__":
 
 	# Create a new client
 	app = Client(root, serverAddr, serverPort, rtpPort, fileName)
-	app.master.title("RTPClient")	
-	root.mainloop()
+	app.master.title("RTPClient")
+	try:
+		root.mainloop()
+	finally:
+		app.rtspSocket.close()
