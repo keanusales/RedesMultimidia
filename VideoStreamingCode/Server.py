@@ -1,20 +1,22 @@
+import sys, socket
+
 from ServerWorker import ServerWorker
-from argparse import ArgumentParser
-import socket
 
 class Server:
 	def __init__(self):
-		parser = ArgumentParser()
-		parser.add_argument("server_port", nargs = 1,
-			type = int, help = "Desired server port number")
-		self.args = parser.parse_args()
+		try:
+			self.SERVER_PORT = int(sys.argv[1])
+		except:
+			print("[Usage: Server.py Server_port]\n")
+
 		self.main()
 
 	def main(self):
 		rtspSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		rtspSocket.bind(('', self.args.server_port))
-		rtspSocket.listen(5)        
+		rtspSocket.bind(('', self.SERVER_PORT))
+		rtspSocket.listen(5)
 
+		print("### SERVIDOR INICIALIZADO ###\n")
 		# Receive client info (address,port) through RTSP/TCP session
 		while True:
 			clientInfo = {}
