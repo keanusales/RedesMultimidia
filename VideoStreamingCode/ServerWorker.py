@@ -2,6 +2,8 @@ from threading import Thread, Event
 from random import randint
 import socket
 
+from debugpy.launcher.debuggee import describe
+
 from VideoStream import VideoStream
 from RtpPacket import RtpPacket
 
@@ -10,6 +12,7 @@ class ServerWorker:
 	PLAY = "PLAY"
 	PAUSE = "PAUSE"
 	TEARDOWN = "TEARDOWN"
+	DESCRIBE = "DESCRIBE"
 	
 	INIT = 0
 	READY = 1
@@ -19,6 +22,7 @@ class ServerWorker:
 	OK_200 = 0
 	FILE_NOT_FOUND_404 = 1
 	CON_ERR_500 = 2
+	NOT_VALID_STATE = 455
 
 	RESOURCES_PATH = "./resources/"
 
@@ -105,12 +109,21 @@ class ServerWorker:
 		elif requestType == self.TEARDOWN:
 			print("processing TEARDOWN\n")
 
-			self.clientInfo["event"].set()
+			if "event" in self.clientInfo:
+				self.clientInfo["event"].set()
 			
 			self.replyRtsp(self.OK_200, seq[1])
 			
 			# Close the RTP socket
-			self.clientInfo["rtpSocket"].close()
+			if "rtpSocket" in self.clientInfo:
+				self.clientInfo["rtpSocket"].close()
+
+		elif requestType == self.DESCRIBE:
+			print("processing DESCRIBE\n")
+			if self.state == self.INIT:
+				self.replyRtsp(self.NOT_VALID_STATE, seq[1])
+			else:
+				self.replyRtsp(self.OK_200, seq[1], describe=True)
 			
 	def sendRtp(self):
 		"""Send RTP packets over UDP."""
@@ -147,12 +160,19 @@ class ServerWorker:
 		rtpPacket.encode(version, padding, extension, cc, seqnum, marker, pt, ssrc, payload)
 		
 		return rtpPacket.getPacket()
-		
-	def replyRtsp(self, code: int, seq):
+
+	def replyRtsp(self, code: int, seq, describe=False):
 		"""Send RTSP reply to the client."""
 		if code == self.OK_200:
-			#print "200 OK"
 			reply = f"RTSP/1.0 200 OK\nCSeq: {seq}\nSession: {self.clientInfo['session']}"
+			if describe:
+				sdp = f"v=0\n" \
+					  f"s=RTSP Session\n" \
+					  f"m=video {self.clientInfo['rtpPort']} RTP/AVP 26\n" \
+					  f"c=IN IP4 {self.clientInfo['rtspSocket'][1][0]}\n" \
+					  f"t=0 0\n" \
+					  f"a=eTag:{self.clientInfo['session']}\n"
+				reply += f"\nContent-Base: {self.clientInfo["videoStream"].filename.split("/")[-1]}\nContent-Type: application/sdp\nContent-Length: {len(sdp)}\n\n{sdp}"
 			connSocket = self.clientInfo["rtspSocket"][0]
 			connSocket.send(reply.encode("utf-8"))
 
@@ -161,3 +181,5 @@ class ServerWorker:
 			print("404 NOT FOUND")
 		elif code == self.CON_ERR_500:
 			print("500 CONNECTION ERROR")
+		elif code == self.NOT_VALID_STATE:
+			print("455 METHOD NOT VALID IN THIS STATE")

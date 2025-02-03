@@ -1,13 +1,12 @@
-from tkinter import Button, Label, messagebox, Tk
+import io
+from tkinter import Button, Label, messagebox, Tk, Toplevel, Text
 from threading import Thread, Event
+from tkinter.constants import DISABLED
+
 from PIL import Image, ImageTk
-from os import remove
 import socket
 
 from RtpPacket import RtpPacket
-
-CACHE_FILE_NAME = "cache-"
-CACHE_FILE_EXT = ".jpg"
 
 class Client:
 	INIT = 0
@@ -19,6 +18,7 @@ class Client:
 	PLAY = 1
 	PAUSE = 2
 	TEARDOWN = 3
+	DESCRIBE = 4
 
 	# Initiation..
 	def __init__(self, master: Tk, serveraddr: str, serverport: int, rtpport: int, filename: str):
@@ -61,10 +61,27 @@ class Client:
 		self.teardown["text"] = "Teardown"
 		self.teardown["command"] =  self.exitClient
 		self.teardown.grid(row=1, column=3, padx=2, pady=2)
+
+		# Create Describe button
+		self.describe = Button(self.master, width=20, padx=3, pady=3)
+		self.describe["text"] = "Describe"
+		self.describe["command"] = self.describeMovie
+		self.describe.grid(row=1, column=4, padx=2, pady=2)
 		
 		# Create a label to display the movie
 		self.label = Label(self.master, height=19)
 		self.label.grid(row=0, column=0, columnspan=4, sticky="wens", padx=5, pady=5)
+
+	def showDescribeModal(self, sdp_description):
+		"""Show the SDP description in a modal window."""
+		modal = Toplevel(self.master)
+		modal.title("SDP Description")
+		modal.geometry("400x300")
+		text = Text(modal, wrap="word")
+		text.insert("1.0", sdp_description)
+		text.config(state=DISABLED)
+		text.pack(expand=True, fill="both")
+		Button(modal, text="Close", command=modal.destroy).pack(pady=10)
 
 	def setupMovie(self):
 		"""Setup button handler."""
@@ -75,7 +92,6 @@ class Client:
 		"""Teardown button handler."""
 		self.sendRtspRequest(self.TEARDOWN)		
 		self.master.destroy() # Close the gui window
-		remove(f"{CACHE_FILE_NAME}{self.sessionId}{CACHE_FILE_EXT}") # Delete the cache image from video
 
 	def pauseMovie(self):
 		"""Pause button handler."""
@@ -90,6 +106,10 @@ class Client:
 			self.playEvent = Event()
 			self.playEvent.clear()
 			self.sendRtspRequest(self.PLAY)
+
+	def describeMovie(self):
+		"""Describe button handler."""
+		self.sendRtspRequest(self.DESCRIBE)
 	
 	def listenRtp(self):		
 		"""Listen for RTP packets."""
@@ -105,7 +125,7 @@ class Client:
 
 					if currFrameNbr > self.frameNbr: # Discard the late packet
 						self.frameNbr = currFrameNbr
-						self.updateMovie(self.writeFrame(rtpPacket.getPayload()))
+						self.updateMovie(rtpPacket.getPayload())
 			except socket.error as e:
 				print(f"Erro no socket: {e}")
 				break
@@ -120,19 +140,12 @@ class Client:
 					self.rtpSocket.shutdown(socket.SHUT_RDWR)
 					self.rtpSocket.close()
 					break
-					
-	def writeFrame(self, data):
-		"""Write the received frame to a temp image file. Return the image file."""
-		cachename = f"{CACHE_FILE_NAME}{self.sessionId}{CACHE_FILE_EXT}"
-		with open(cachename, "wb") as file:
-			file.write(data)
 
-		return cachename
-	
-	def updateMovie(self, imageFile):
+	def updateMovie(self, frameData: bytes):
 		"""Update the image file as video frame in the GUI."""
-		photo = ImageTk.PhotoImage(Image.open(imageFile))
-		self.label.configure(image = photo, height = 288)
+		image = Image.open(io.BytesIO(frameData))
+		photo = ImageTk.PhotoImage(image)
+		self.label.configure(image=photo, height=288)
 		self.label.image = photo
 
 	def connectToServer(self):
@@ -144,10 +157,7 @@ class Client:
 			messagebox.showwarning("Connection Failed", f"Connection to \"{self.serverAddr}:{self.serverPort}\" failed.")
 
 	def sendRtspRequest(self, requestCode):
-		"""Send RTSP request to the server."""	
-		#-------------
-		# TO COMPLETE
-		#-------------
+		"""Send RTSP request to the server."""
 		
 		# Setup request
 		if requestCode == self.SETUP and self.state == self.INIT:
@@ -193,13 +203,18 @@ class Client:
 			
 			# Keep track of the sent request.
 			self.requestSent = self.TEARDOWN
+		# Describe request
+		elif requestCode == self.DESCRIBE:
+			self.rtspSeq += 1
+			request = f"DESCRIBE {self.fileName} RTSP/1.0\nCSeq: {self.rtspSeq}\nAccept: application/sdp"
+			self.requestSent = self.DESCRIBE
 		else:
 			return
 		
 		# Send the RTSP request using rtspSocket.
 		self.rtspSocket.send(request.encode())
 		
-		print(f"\nData sent:\n{request}")
+		print(f"\nData sent:\n{request}\n\n")
 
 	def recvRtspReply(self):
 		"""Receive RTSP reply from the server."""
@@ -232,27 +247,25 @@ class Client:
 				if int(lines[0].split(" ")[1]) == 200: 
 					if self.requestSent == self.SETUP:
 						self.state = self.READY
-						
 						# Open RTP port.
 						self.openRtpPort() 
 					elif self.requestSent == self.PLAY:
 						self.state = self.PLAYING
 					elif self.requestSent == self.PAUSE:
 						self.state = self.READY
-						
 						# The play thread exits. A new thread is created on resume.
 						self.playEvent.set()
 					elif self.requestSent == self.TEARDOWN:
 						self.state = self.INIT
-						
 						# Flag the teardownAcked to close the socket.
-						self.teardownAcked = 1 
+						self.teardownAcked = 1
+					elif self.requestSent == self.DESCRIBE:
+						sdp_description = "\n".join(lines[3:])
+						self.showDescribeModal(sdp_description)
 	
 	def openRtpPort(self):
 		"""Open RTP socket binded to a specified port."""
-		#-------------
-		# TO COMPLETE
-		#-------------
+
 		# Create a new datagram socket to receive RTP packets from the server
 		self.rtpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		
