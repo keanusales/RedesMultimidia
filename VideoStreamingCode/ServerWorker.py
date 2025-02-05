@@ -172,7 +172,7 @@ class ServerWorker:
 					  f"c=IN IP4 {self.clientInfo['rtspSocket'][1][0]}\n" \
 					  f"t=0 0\n" \
 					  f"a=eTag:{self.clientInfo['session']}\n"
-				reply += f"\nContent-Base: {self.clientInfo["videoStream"].filename.split("/")[-1]}\nContent-Type: application/sdp\nContent-Length: {len(sdp)}\n\n{sdp}"
+				reply += f"\nContent-Base: {self.clientInfo['videoStream'].filename.split('/')[-1]}\nContent-Type: application/sdp\nContent-Length: {len(sdp)}\n\n{sdp}"
 			connSocket = self.clientInfo["rtspSocket"][0]
 			connSocket.send(reply.encode("utf-8"))
 
