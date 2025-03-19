@@ -25,6 +25,8 @@ class Server:
 				print(f"Cliente conectado: {client_socket}-{client_addr}")
 				clientInfo['rtspSocket'] = (client_socket, client_addr)
 				ServerWorker(clientInfo).run()
+		except KeyboardInterrupt:
+			print("\n### SERVIDOR DESLIGADO ###")
 		finally:
 			rtspSocket.close()
 
